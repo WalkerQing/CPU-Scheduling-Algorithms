@@ -1,0 +1,928 @@
+<html>
+<head>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<style type="text/css">
+	</style>
+	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+</head>
+<body>
+	 <div id="page-wrapper">
+
+        <h1>CPU Scheduling Algorithms</h1>
+        <div>
+            Select a text file: 
+            <input type="file" id="fileInput">
+        </div>
+        <pre id="fileDisplayArea" class = "col-md-12 center-block"><pre>
+
+    </div>
+    <div id = "tables">
+    <h3>Waiting time for each processes under different algorithms</h3>
+	<div class = "col-md-12">
+		<div class = "col-md-5" id = "tableContainer">
+			<table id = "fcfsTable" class="table table-primary">
+				<thead id ="head1">
+					
+				</thead>
+				<tbody id = "tableBody">
+					 
+				</tbody>
+			</table>
+
+	   </div>
+    </div>
+    <h3>Evaluation of each scheduling algorithm</h3>
+	<div class = "col-md-12">
+		<div class = "col-md-5" id = "tableContainer">
+			<table id = "ganttTable" class="table table-success">
+                <thead id ="head2">
+                    
+                </thead>
+				<tbody id = "tableBody2">
+					 
+				</tbody>
+			</table>
+
+	</div> 
+
+</div>
+</div>
+</body>
+<script>
+window.onload = function() {
+        $("#tables").hide()
+        var fileInput = document.getElementById('fileInput');
+        var fileDisplayArea = document.getElementById('fileDisplayArea');
+        var fcfs = 1;
+        var sjf = 2;
+        var srpt = 3;
+        var priority = 4;
+        var roundrobin = 5;
+        var algo
+        var obj1 = {
+        	a:1,
+        	b:8
+        }
+        var obj2 = {
+        	a:8,
+        	b:3
+        }
+        var obj3 = {
+        	a:7,
+        	b:9
+        }
+
+        var objects = []
+        objects.push(obj1)
+        objects.push(obj2)
+        objects.push(obj3)
+        objects.push({a:5,b:2})
+        objects.sort(function(a,b) {
+        	return a.a - b.a
+        })
+        //console.log(objects)
+         var re = /\s+/
+        // console.log(string2.split(re))
+        processes = []
+
+        fileInput.addEventListener('change', function(e) {
+            var file = fileInput.files[0];
+            var textType = /text.*/;
+         
+
+            if (file.type.match(textType)) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+                	//console.log(this.result)
+                    fileDisplayArea.innerText = reader.result;
+                    var lines = this.result.split('\n');
+                    //console.log(lines)
+    				for(var line = 1; line < lines.length; line++){
+      					var word = lines[line];
+      					word = word.split(re)
+      					var process = {
+      						number:parseInt(word[0]),
+      						arrival:parseInt(word[1]),
+      						bursttime:parseInt(word[2]),
+      						priority:parseInt(word[3]),
+      						srpt:null,
+      						sjf:null,
+      						srpt:null,
+      						pty:null,
+      						rr:null
+      					}
+
+      				processes.push(process)
+
+
+    				}
+                      avg  = {
+                            fcfs:null,
+                            srpt:null,
+                            sjf:null,
+                            srpt:null,
+                            pty:null,
+                            rr:null
+                        }
+                      jobOrder = {
+                      		fcfs:[],
+                            srpt:[],
+                            sjf: [],
+                            srpt:[],
+                            pty:[],
+                            rr:[]
+                      }
+
+    				console.log(processes)
+    				constructTable()
+    				FCFS()
+    				//SJF()
+    				SJF2();
+    				
+    				 
+    				// SRPT();
+    				
+    				SRPT();
+    				Priority()
+    				RoundRobin()
+                    constructEvaluation()
+                }
+
+
+                reader.readAsText(file); 
+                  
+
+            } else {
+                fileDisplayArea.innerText = "File not supported!"
+            }
+            
+        });
+        function constructEvaluation() {
+            var tr = document.createElement('tr')
+          
+         
+                var td =  document.createElement('td')
+                $(td).html(avg.fcfs + 'ms');
+                $(tr).append(td)
+                  var td =  document.createElement('td')
+                 $(td).html(avg.sjf + 'ms');
+                $(tr).append(td)
+                  var td =  document.createElement('td')
+                 $(td).html(avg.priority + 'ms');
+                $(tr).append(td)
+                  var td =  document.createElement('td')
+                 $(td).html(avg.srpt + 'ms');
+                $(tr).append(td)
+                  var td =  document.createElement('td')
+                 $(td).html(avg.rr + 'ms');
+                $(tr).append(td)
+
+            
+            console.log(jobOrder.sjf)
+            console.log(jobOrder.sjf.toString())
+
+            $("#tableBody2").append(tr)
+             var tr = document.createElement('tr')
+              var td =  document.createElement('td')
+             $(td).html(jobOrder.fcfs.toString());
+             $(tr).append(td)
+
+             var td =  document.createElement('td')
+             $(td).html(jobOrder.sjf.toString());
+             $(tr).append(td)
+
+
+             var td =  document.createElement('td')
+             $(td).html(jobOrder.srpt.toString());
+             $(tr).append(td)
+
+
+             var td =  document.createElement('td')
+             $(td).html(jobOrder.pty.toString());
+             $(tr).append(td)
+
+
+             var td =  document.createElement('td')
+             $(td).html(jobOrder.rr.toString());
+             $(tr).append(td)
+             $("#tableBody2").append(tr)
+        }
+        function constructTable() {
+            $("#tables").show()
+        	var tr = document.createElement('tr')
+        	$(tr).append('<th></th>')
+        	for(var i = 1; i <=processes.length; i++ ) {
+        		$(tr).append('<th>P' + i + '</th>')
+        	}
+        	$('#head1').append(tr);
+        	var tr = document.createElement('tr')
+            $(tr).append('<th>FCFS</th>')
+            $(tr).append('<th>SJF</th>')
+            $(tr).append('<th>SRPT</th>')
+            $(tr).append('<th>PRIORITY</th>')
+            $(tr).append('<th>ROUND ROBIN</th>')
+           
+            $('#head2').append(tr);
+        }
+        function tiebreaker(arr, index, complementAlgorithm) {
+            var queue = []
+            queue = arr
+            var base = arr[index]
+            for(var ctr = index; base == arr[index]; )
+            if(complementAlgorithm == "fcfs") {
+                queue.sort(sortOnOrder)
+            }
+            if(complementAlgorithm == "sjf") {
+                queue.sort(sortOnBurstTime)
+            }
+            return queue
+        }
+        function splitByBursttime(arr, startIndex) {
+            var tree = []
+            
+            var base = null
+
+            for(var ctr = startIndex; ctr < arr.length; ctr++) {
+            	print(arr[ctr])
+            	if( ctr == startIndex) {
+            		group = []
+            		group.push(arr[ctr])
+            		base = arr[ctr]
+            	} else{
+            		 if(arr[ctr].bursttime == base.bursttime){
+	                    group.push(arr[ctr])
+	                } else {
+	                	if(group) {
+	                		tree.push(group)
+	                	}
+	                    base = arr[ctr]
+	                    group = []
+	                    group.push(base)
+	                }
+            	}
+               
+            }
+            if(group) {
+	            tree.push(group)
+	        }
+            print(tree)
+            return tree
+        }
+        function FCFS() {
+        	console.log("FCFS")
+        	var algorithm = []
+            var total = 0
+
+
+        	processes.sort(sortOnOrder)
+        	var waitingTime = 0;
+        	var tr = document.createElement('tr')
+        	$(tr).append('<th scope = "row">FCFS</th>')
+        	for(var i = 0; i < processes.length; i++) {
+        		jobOrder.fcfs.push("P" + processes[i].number)
+        		processes[i].fcfs = waitingTime;
+        		waitingTime+= processes[i].bursttime;
+                total = total + processes[i].fcfs
+        		
+        		var th = document.createElement('th')
+        		$(th).html(processes[i].fcfs + 'ms');
+        		$(tr).append(th)
+
+        	}
+            avg.fcfs = total/processes.length
+
+        	$("#tableBody").append(tr)
+        }
+        function SJF() {
+        	console.log("SJF")
+        	var processesCopy = []
+            var prevProcess = null
+            var buffer = []
+            var total = 0
+        	processes.sort(sortOnOrder)
+        	processesCopy = JSON.parse(JSON.stringify(processes))
+        	processesCopy.sort(function(a,b){
+        		return a.bursttime - b.bursttime
+        	})
+            queue = []
+            var i = 0 
+            prevProcess = {}
+            prevProcess.bursttime = -1
+            while(i < processesCopy.length) {
+                    
+                    buffer= []
+                    
+                    console.log("number = " + prevProcess.number + ",bursttime=" + prevProcess.bursttime + "processesCopy[i].number" + processesCopy[i].number + "processCopy[i].bursttime=" + processesCopy[i].bursttime )
+                    startIndex = i
+
+
+                    if(prevProcess.bursttime == processesCopy[i].bursttime) {
+                        buffer.push(prevProcess)
+                        queue.pop()
+                        while(prevProcess.bursttime == processesCopy[i].bursttime){
+                        buffer.push(processesCopy[i])
+                        i++
+
+                        if(i>=processesCopy.length) break
+
+                        }
+                        
+                    }else {
+                        prevProcess = processesCopy[i]
+                        queue.push(prevProcess)
+                         i++
+                    }
+                   
+                    if(buffer.length != 0) {
+                       
+                        console.log("startIndex = " + startIndex)
+                        buffer.sort(sortOnOrder)
+                         console.log(buffer)
+                        for(var ctr = 0; ctr < buffer.length; ctr++) {
+                            console.log("ctr =" + ctr)
+                            queue.push(buffer[ctr])
+                        }
+                        
+                        console.log(JSON.stringify(queue))
+                }
+               
+
+            
+        }
+        	var waitingTime = 0;
+        	for(var i = 0; i < queue.length; i++) {
+        		queue[i].sjf = waitingTime;
+        		waitingTime+=queue[i].bursttime;
+
+        	}
+        	
+        	queue.sort(sortOnOrder)
+
+        	var tr = document.createElement('tr')
+        	$(tr).append('<th scope = "row">SJF</th>')
+        	for(var i = 0; i < queue.length; i++) {
+        		var th = document.createElement('th')
+                total = total + queue[i].sjf
+        		$(th).html(queue[i].sjf + 'ms');
+        		$(tr).append(th)
+
+        	}
+            avg.sjf = total/queue.length
+        	$("#tableBody").append(tr)
+        }
+        function print(message) {
+        	console.log(JSON.stringify(message))
+        }
+        function SJF2() {
+        	console.log("SJF2")
+        	var processesCopy = []
+            var prevProcess = null
+            var buffer = []
+            var total = 0
+            //initialization
+        	processes.sort(sortOnOrder)
+        	processesCopy = JSON.parse(JSON.stringify(processes))
+        	processesCopy.sort(sortOnBurstTime)
+            queue = []
+            var i = 0 
+            prevProcess = {}
+            prevProcess.bursttime = -1
+           
+
+                    //first, split processesCopy by bursttime
+                    groupedProcesses = splitByBursttime(processesCopy, 0)
+
+
+            		for(var ctr = 0; ctr < groupedProcesses.length; ctr++) {
+            			if(groupedProcesses[ctr]) {
+            				groupedProcesses[ctr].sort(sortOnOrder)
+            				for(ctr2 = 0; ctr2 < groupedProcesses[ctr].length; ctr2++) {
+            					queue.push(groupedProcesses[ctr][ctr2])
+            				}
+            			}
+            		}
+        	var waitingTime = 0;
+        	for(var i = 0; i < queue.length; i++) {
+        		queue[i].sjf = waitingTime;
+        		jobOrder.sjf.push("P" + queue[i].number)
+        		waitingTime+=queue[i].bursttime;
+
+        	}
+        	//jobOrder.sjf = JSON.parse(JSON.stringify(queue))
+        	queue.sort(sortOnOrder)
+
+        	var tr = document.createElement('tr')
+        	$(tr).append('<th scope = "row">SJF</th>')
+        	for(var i = 0; i < queue.length; i++) {
+        		var th = document.createElement('th')
+                total = total + queue[i].sjf
+        		$(th).html(queue[i].sjf + 'ms');
+        		$(tr).append(th)
+
+        	}
+            avg.sjf = total/queue.length
+        	$("#tableBody").append(tr)
+
+        }
+
+
+        function SRPT2() {
+        	var time = 0
+        	var queue = []
+        	var buffer = []
+        	var shortestIndex = 0
+        	var total = 0
+        	var groupedProcesses
+        	processes.sort(sortOnOrder)
+        	console.log(JSON.stringify(processes))
+
+
+        	processesCopy = JSON.parse(JSON.stringify(processes))
+        	processesCopy.sort(sortOnArrival)
+        	groupedProcesses = splitByArrival(processesCopy)
+        	prevProcess = null
+        	
+        	for(var ctr = 0; ctr < groupedProcesses.length; ctr++, time++) {
+
+            			if(groupedProcesses[ctr][0].arrival == time) { //if naay maabot
+            				groupedProcesses[ctr].sort(sortOnBurstTime) // sort to  get shortest arriving job
+            				shortestIndex = ctr
+
+            				for(ctr2 = 0 ; ctr2 < ctr ; ctr2++) {
+            					if(groupedProcesses[ctr2].length != 0) {
+            						if(groupedProcesses[ctr2][0].bursttime < groupedProcesses[shortestIndex][0].bursttime) {
+            							shortestIndex = ctr2
+            						} 
+            					}
+            					
+            				}							//compare with 
+            			} 
+
+            			groupedProcesses[shortestIndex][0].bursttime -- 
+            			console.log(groupedProcesses[shortestIndex][0].number + "|" +time + "|" + groupedProcesses[shortestIndex][0].bursttime )
+            			if(groupedProcesses[shortestIndex][0].bursttime == 0) {
+            					
+            				queue.push(groupedProcesses[shortestIndex].shift())
+            			} else {
+            				if(groupedProcesses[shortestIndex][0] != prevProcess) {
+            				groupedProcesses[shortestIndex][0].switches ++ 
+            				groupedProcesses[shortestIndex][0].lastWaitingTime = time
+            				
+            				}
+            				prevProcess = groupedProcesses[shortestIndex][0]
+            			}
+
+            				
+            				
+            			
+            			
+            			
+            			
+            			//groupedProcesses[shortestIndex][0].bursttime -- 
+
+            		
+            			
+            				  
+            			//time++
+
+            				
+            				
+            	}
+            	console.log("QUEUE")
+            	print(queue)
+
+
+
+            //SJF 
+            console.log(groupedProcesses.length)
+           // print(groupedProcesses)
+            for(var ctr = 0; ctr < groupedProcesses.length; ctr++) {
+
+            	if(groupedProcesses[ctr]) {
+            		//console.log(ctr)
+            		//print(groupedProcesses[ctr])
+            		buffer = buffer.concat(groupedProcesses[ctr])
+            	}
+            }
+            console.log("BUFFER")
+           /* buffer.sort(sortOnBurstTime)
+             print(buffer)
+            buffer.sort(sortOnOrder)
+            print(buffer)*/
+
+           
+            for(var ctr = 0; ctr < buffer.length; ctr++) {
+            	console.log(buffer[ctr].number + "|" +time + "|" + buffer[ctr].bursttime )
+            	if(prevProcess.number != buffer[ctr].number) {
+            		buffer[ctr].lastWaitingTime = time
+            	}
+            	buffer[ctr].switches++
+            	time = time + buffer[ctr].bursttime 
+            	prevProcess = buffer[ctr]
+
+            	
+            }
+            queue = queue.concat(buffer)
+             for(var ctr = 0; ctr < queue.length; ctr++){
+            	queue[ctr].switches--
+            	console.log("(" + queue[ctr].number + ")" + queue[ctr].lastWaitingTime + "-"  + queue[ctr].switches + "-" + queue[ctr].arrival)
+            	queue[ctr].srpt = queue[ctr].lastWaitingTime - queue[ctr].switches - queue[ctr].arrival
+            }
+          
+            queue.sort(sortOnOrder)
+            console.log("sort queue")
+            print(queue)
+
+            var tr = document.createElement('tr')
+            $(tr).append('<th scope = "row">SRPT</th>')
+            for(var i = 0; i < queue.length; i++) {
+                var th = document.createElement('th')
+                total = total + queue[i].srpt
+                $(th).html(queue[i].srpt + 'ms');
+                   $(tr).append(th)
+
+            }
+            avg.srpt = total/queue.length
+                $("#tableBody").append(tr)
+
+            	
+
+        }
+       function SRPT() {
+        	var time = 0
+        	var counter = 0
+        	var offset = 0
+        	var queue = []
+        	var sortedList = []
+        	var prevProcess = {
+        		number : -1
+        	}
+            var total = 0
+        	processes.sort(sortOnOrder)
+        	console.log(JSON.stringify(processes))
+        // 	processes.sort(sortOnArrival);
+        // 	while(counter < processes.length) {
+        // 		counter = handleProcessArrival(counter, time){ // For arriving processes
+		      //   	while(processes[counter]==time) {
+		      //   		queue.push(processes)
+		      //   		counter++
+		      //   	}
+		      //   } 
+        // 		if(queue.length!=0) {
+        // 			queue.sort(sortOnBurstTime)
+        // 			i = 0
+        // 			while(queue[i].bursttime == 0) {
+        // 				i++
+        // 			}
+        // 			queue[i].bursttime--
+        // 			if(processes[queue[i].number].srpt == null)
+        // 				processes[queue[i].number].srpt = time
+        // 		}
+        // 	}
+        // }
+        console.log("SRPT")
+        var history = []
+        var buffer = []
+        var queue = []
+            while(sortedList.length!=processes.length) {
+          		console.log("counter= " + counter + "sortedList.length" + sortedList.length + " offset=" + offset + "time=" + time)
+            	buffer = getIncomingProcesses(counter, time)
+            	sortedList = sortedList.concat(buffer)	
+            	
+            	sortedList.sort(sortOnBurstTime)
+            	
+            	//history.push(sortedList[offset].number)
+            	 console.log(JSON.stringify(sortedList))
+            	sortedList[offset].bursttime-- //get shortest job and decrease remaining processing time
+              console.log("prev:" + prevProcess.number +"sortedList:" + sortedList[offset].number)
+               if(prevProcess.number != sortedList[offset].number) {
+            			//sortedList[offset].switches++
+            			// sortedList[offset].lastWaitingTime = time
+            	}
+            		jobOrder.srpt.push("P" + sortedList[offset].number)
+            		prevProcess = sortedList[offset]
+            		sortedList[offset].switches++
+            		sortedList[offset].lastWaitingTime = time
+
+            	if(sortedList[offset].bursttime == 0) { 
+            		/*console.log("offset = " + offset  + ", number =  " + sortedList[offset].number)*/
+            		
+            		
+            		queue.push(sortedList[offset])
+            		offset++;
+            	} 
+            	
+            	
+            	time++
+            	counter = counter + buffer.length
+            	/*console.log("sortedList = " + sortedList.length + ", processes.length = " + processes.length)*/
+
+            }
+
+            //do SJF
+           /* sortedList.sort(sortOnBurstTime)
+            console.log("do SJF")
+            console.log(JSON.stringify(sortedList))
+           
+            var queue = []
+           */
+          /* var queue = []*/
+           console.log("offset:" + offset)
+          var groupedProcesses = splitByBursttime(sortedList, offset)
+          for(var ctr = 0; ctr < groupedProcesses.length; ctr++) {
+           	// if(groupedProcesses[ctr].length!=0) {
+           	 	groupedProcesses[ctr].sort(sortOnOrder)
+           	 	for(var ctr2 = 0; ctr2 < groupedProcesses[ctr].length; ctr2++) {
+           	 		if(prevProcess.number != groupedProcesses[ctr][ctr2].number) {
+           	 		groupedProcesses[ctr][ctr2].switches++;
+           	 		groupedProcesses[ctr][ctr2].lastWaitingTime = time;
+           	 		
+
+           	 			}
+           	 			jobOrder.srpt.push("P" + groupedProcesses[ctr][ctr2].number)
+           	 			queue.push(groupedProcesses[ctr][ctr2])
+           	 			prevProcess = groupedProcesses[ctr][ctr2]
+           	 			time = time + groupedProcesses[ctr][ctr2].bursttime
+           	 	}
+           	 	
+           	 	
+
+           	 	
+
+           	 }
+         /*  
+           	console.log("prevProcess.number :" + prevProcess.number)
+           	for( var ctr = offset; ctr < sortedList.length; ctr++) {
+           		console.log(time + "|" + sortedList[ctr].number + "|" + sortedList[ctr].bursttime)
+           		if(prevProcess.number != sortedList[ctr].number) {
+           			sortedList[ctr].switches++;
+           			sortedList[ctr].lastWaitingTime = time;
+           		}
+           		
+           		time = time + sortedList[ctr].bursttime;
+           	}*/
+
+           /*
+            for(var ctr = offset ; ctr < sortedList.length; ctr++) {
+                queue = []
+                var base = sortedList[ctr].burstime
+                while(base ==  sortedList[ctr].burstime) {       
+                        queue.push(sortedList[ctr].burstime)
+                        ctr++
+                        if(ctr >=sortedList.length)
+                            break
+                }
+               
+                if(ctr >=sortedList.length)
+                            break
+            	
+            	sortedList[ctr].switches++;
+                sortedList[ctr].lastWaitingTime = time;
+                time = time + sortedList[ctr].bursttime;
+
+            }
+*/
+		console.log("queueue")
+		print(queue)
+            for(var ctr = 0; ctr < queue.length; ctr++){
+            	queue[ctr].switches--
+            console.log("(" +  queue[ctr].number + ")" +    queue[ctr].lastWaitingTime +"-" + queue[ctr].switches +"-" +  queue[ctr].arrival)
+            	queue[ctr].srpt = queue[ctr].lastWaitingTime - queue[ctr].switches - queue[ctr].arrival
+            }
+           // console.log(sortedList.sort(sortOnLastWaitingTime))
+            //console.log(history)
+
+            queue.sort(sortOnOrder)
+
+
+            var tr = document.createElement('tr')
+            $(tr).append('<th scope = "row">SRPT</th>')
+            for(var i = 0; i < queue.length; i++) {
+                var th = document.createElement('th')
+                total = total + queue[i].srpt
+                $(th).html(queue[i].srpt + 'ms');
+                   $(tr).append(th)
+
+            }
+            avg.srpt = total/sortedList.length
+                $("#tableBody").append(tr)
+
+}
+
+        function splitByArrival(arr) {
+        	var tree = []
+            var startIndex = 0
+            var base = null
+
+            for(var ctr = 0; ctr < arr.length; ctr++) {
+            	print(arr[ctr])
+            	arr[ctr].switches = 0
+            	arr[ctr].lastWaitingTime = 0
+            	if( ctr == 0) {
+            		base = arr[ctr]
+            		group = []
+            		group.push(arr[ctr])
+            		
+            	} else{
+            		 if(arr[ctr].arrival == base.arrival){
+
+	                    group.push(arr[ctr])
+	                } else {
+	                	if(group) {
+	                		tree.push(group)
+	                	}
+	                    base = arr[ctr]
+	                    group = []
+	                    group.push(base)
+	                }
+            	}
+               
+            }
+            if(group) {
+	            tree.push(group)
+	        }
+            print(tree)
+            return tree
+        }
+
+
+function getIncomingProcesses(counter, time) {
+	arrivedProcesses = []
+	//console.log(counter)
+	while(processes[counter].arrival == time) {
+		arrivedProcess = {
+			number: processes[counter].number,
+			lastWaitingTime:0,
+			switches:0,
+			srpt:0,
+			bursttime: processes[counter].bursttime,
+			arrival: processes[counter].arrival
+		}
+		
+		counter++
+		arrivedProcesses.push(arrivedProcess)
+		if(counter == processes.length) {
+			break;
+		}
+	}
+	console.log("incoming")
+	//console.log(arrivedProcesses)
+	print(arrivedProcesses)
+	return arrivedProcesses
+}
+
+
+        function Priority() {
+        	console.log("Priority")
+        	var counter = 0;
+        	var buffer;
+        	var priority = 0;
+        	var queue = [];
+            var total = 0
+        	//var processesT = processes;
+        	var processesCopy = []
+        	processes.sort(sortOnPriority)
+            console.log(JSON.stringify(processes))
+        	while(counter < processes.length) {
+        		buffer = []
+        		priority = processes[counter].priority
+	        	buffer.push(processes[counter])
+	        	counter++;
+	        	while(counter<processes.length) {
+	        		if(processes[counter].priority == priority){
+	        			buffer.push(processes[counter])
+	        			counter++;
+	        		} else{
+	        			break;
+	        		}
+        	}
+
+        	buffer.sort(sortOnOrder)
+           
+        	processesCopy = processesCopy.concat(buffer)
+        	}
+            console.log("ODNE")
+             console.log(JSON.stringify(processesCopy))
+        	var waitingTime = 0;
+
+        	var tr = document.createElement('tr')
+        	$(tr).append('<th scope = "row">Priority</th>')
+        	for(var i = 0; i < processesCopy.length; i++) {
+        		jobOrder.pty.push("P" + processesCopy[i].number)
+        		processesCopy[i].priority = waitingTime;
+        		waitingTime+= processesCopy[i].bursttime;
+        	}
+            processesCopy.sort(sortOnOrder)
+            for(var i = 0; i < processesCopy.length; i++) {
+        		var th = document.createElement('th')
+                total = total + processesCopy[i].priority
+        		$(th).html(processesCopy[i].priority + 'ms');
+        		$(tr).append(th)
+
+        	}
+            avg.priority = total/processesCopy.length
+        	$("#tableBody").append(tr)
+        	
+
+
+
+        	
+        }
+	
+	function RoundRobin() {
+		console.log("RoundRobin")
+		//array.splice(index, 1)
+		
+		 buffer = []
+		processes.sort(sortOnOrder)
+		buffer = JSON.parse(JSON.stringify(processes.slice()))  //initalize to contain all elements
+		console.log(JSON.stringify(buffer))
+		var counter = 0
+		var timeslice = 4
+		var timeCtr = 0
+		var time = 0
+        var finished = 0
+        var total = 0
+		
+	   while(finished < buffer.length) {
+            counter = 0
+			while(counter < buffer.length) {//loop througth every process
+			     if(buffer[counter].bursttime!=0) {
+                    timeCtr = 0; //initialize process time to 0
+                    if(buffer[counter].switches == null) {
+                        buffer[counter].switches = 0
+                    }
+            		jobOrder.rr.push("P" + buffer[counter].number)
+                    buffer[counter].switches++
+                        while(timeCtr<timeslice) {//while process has not consumed entire time slice
+                            buffer[counter].bursttime--; //decrease remaining execution time
+                            console.log("buffer[counter].bursttime = " + buffer[counter].bursttime + ",ctr = " + timeCtr + "timeslice = " + timeslice)
+                            if(buffer[counter].bursttime == 0) {//if process finished execution
+                                 buffer[counter].switches--
+                                 finished++
+                               console.log("ZERO number =" + buffer[counter].number + " " + (time-timeCtr) + "-" + buffer[counter].switches + "*" + timeslice)
+                               console.log("ZERO process = " + processes[buffer[counter].number-1].number)
+
+                                processes[buffer[counter].number-1].rr = (time-timeCtr) - buffer[counter].switches*timeslice; //set waiting time
+                                
+                                time++
+
+                                break;//skip loop
+                            } 
+                            time++
+                            timeCtr++
+
+                        }
+
+                        
+                            
+                    }
+				
+				counter++ //go to next process
+
+			}
+        }
+			
+
+	
+		var waitingTime = 0;
+        	var tr = document.createElement('tr')
+        	$(tr).append('<th scope = "row">Round Robin</th>')
+        	for(var i = 0; i < processes.length; i++) {
+        		var th = document.createElement('th')
+                total = total + processes[i].rr
+        		$(th).html(processes[i].rr+ 'ms');
+        		$(tr).append(th)
+
+        	}
+            avg.rr = total/processes.length
+        	$("#tableBody").append(tr)
+
+
+	}
+	var sortOnPriority = function(a,b) {
+		return a.priority - b.priority
+	}
+	var sortOnBurstTime = function (a,b) {
+		return a.bursttime - b.bursttime
+	}
+	var sortOnOrder = function (a,b) {
+		return a.number - b.number
+	}
+	var sortOnArrival = function(a,b) {
+		return a.arrival -b.arrival
+	}
+	var sortOnSRPT = function(a,b) {
+		return a.srpt - b.srpt
+	}
+	var sortOnLastWaitingTime = function(a,b) {
+		return a.lastWaitingTime - b.lastWaitingTime
+	}
+}
+		
+	</script>
+	}
+	}
+	}
+</html>
